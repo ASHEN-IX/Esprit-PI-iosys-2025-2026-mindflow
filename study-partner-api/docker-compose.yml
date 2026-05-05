@@ -1,0 +1,306 @@
+services:
+  # API Gateway - Port 3000
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./services/api-gateway/Dockerfile
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USER_PROFILE_SERVICE_URL=http://user-profile-service:3002
+      - STUDY_SERVICE_URL=http://study-service:3003
+      - AI_ORCHESTRATOR_SERVICE_URL=http://ai-orchestrator-service:3004
+      - SIGNAL_PROCESSING_SERVICE_URL=http://signal-processing-service:3005
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3006
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3007
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      user-profile-service:
+        condition: service_healthy
+      study-service:
+        condition: service_healthy
+      ai-orchestrator-service:
+        condition: service_healthy
+      signal-processing-service:
+        condition: service_healthy
+      analytics-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+
+  # Auth Service - Port 3001
+  auth-service:
+    build:
+      context: .
+      dockerfile: ./services/auth/Dockerfile
+    container_name: auth-service
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://host.docker.internal:27017/study_partner}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change-this-refresh-secret}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
+      - ALLOW_TEST_COUPONS=${ALLOW_TEST_COUPONS:-true}
+      - COUPON_CODES=${COUPON_CODES:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-whsec_test_placeholder}
+      - APP_URL=${APP_URL:-http://localhost:5173}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - EMAIL_FROM=${EMAIL_FROM:-StudyPartner <noreply@studypartner.app>}
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3001/api/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  # User Profile Service - Port 3002
+  user-profile-service:
+    build:
+      context: .
+      dockerfile: ./services/user-profile/Dockerfile
+    container_name: user-profile-service
+    restart: unless-stopped
+    ports:
+      - '3002:3002'
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://host.docker.internal:27017/study_partner}
+      - JWT_SECRET=${JWT_SECRET:-replace_with_a_strong_secret}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3002/api/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  # Study Service - Port 3003
+  study-service:
+    build:
+      context: .
+      dockerfile: ./services/study/Dockerfile
+    container_name: study-service
+    restart: unless-stopped
+    ports:
+      - '3003:3003'
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://host.docker.internal:27017/study_partner}
+      - JWT_SECRET=${JWT_SECRET:-replace_with_a_strong_secret}
+      - AI_SERVICE_URL=http://ai-service:8000
+      - USER_PROFILE_SERVICE_URL=http://user-profile-service:3002
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3007
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3003/api/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  # AI Orchestrator Service - Port 3004
+  ai-orchestrator-service:
+    build:
+      context: .
+      dockerfile: ./services/ai-orchestrator/Dockerfile
+    container_name: ai-orchestrator-service
+    restart: unless-stopped
+    ports:
+      - '3004:3004'
+    environment:
+      - NODE_ENV=development
+      - PORT=3004
+      - AI_SERVICE_URL=http://ai-service:8000
+      - JWT_SECRET=${JWT_SECRET:-replace_with_a_strong_secret}
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3004/api/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      ai-service:
+        condition: service_healthy
+
+  # Signal Processing Service - Port 3005
+  signal-processing-service:
+    build:
+      context: .
+      dockerfile: ./services/signal-processing/Dockerfile
+    container_name: signal-processing-service
+    restart: unless-stopped
+    ports:
+      - '3005:3005'
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+      - JWT_SECRET=${JWT_SECRET:-replace_with_a_strong_secret}
+      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://host.docker.internal:27017/study_partner}
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3005/api/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  # Analytics Service - Port 3006
+  analytics-service:
+    build:
+      context: .
+      dockerfile: ./services/analytics/Dockerfile
+    container_name: analytics-service
+    restart: unless-stopped
+    ports:
+      - '3006:3006'
+    environment:
+      - NODE_ENV=development
+      - PORT=3006
+      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://host.docker.internal:27017/study_partner}
+      - JWT_SECRET=${JWT_SECRET:-replace_with_a_strong_secret}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3006/api/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Notification Service - Port 3007
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./services/notification/Dockerfile
+    container_name: notification-service
+    restart: unless-stopped
+    ports:
+      - '3007:3007'
+    environment:
+      - NODE_ENV=development
+      - PORT=3007
+      - JWT_SECRET=${JWT_SECRET:-replace_with_a_strong_secret}
+      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://host.docker.internal:27017/study_partner}
+      - NOTIFICATION_DB_TIMEOUT_MS=${NOTIFICATION_DB_TIMEOUT_MS:-8000}
+      - MONGO_SERVER_SELECTION_TIMEOUT_MS=${MONGO_SERVER_SELECTION_TIMEOUT_MS:-5000}
+      - MONGO_CONNECT_TIMEOUT_MS=${MONGO_CONNECT_TIMEOUT_MS:-5000}
+      - MONGO_SOCKET_TIMEOUT_MS=${MONGO_SOCKET_TIMEOUT_MS:-10000}
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - EMAIL_NOTIFICATIONS_ENABLED=${EMAIL_NOTIFICATIONS_ENABLED:-false}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-Study Partner <no-reply@study-partner.local>}
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3007/api/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  # AI Service - Port 8000
+  ai-service:
+    build:
+      context: ../study-partner-ai
+      dockerfile: Dockerfile
+    container_name: ai-service
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    environment:
+      - PYTHONPATH=/app
+      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://host.docker.internal:27017/study_partner}
+      - APIFY_API_KEY=${APIFY_API_KEY:-}
+      - HF_API_KEY=${HF_API_KEY:-}
+      - LM_STUDIO_URL=${LM_STUDIO_URL:-http://host.docker.internal:1234/v1/chat/completions}
+      - LM_STUDIO_MODEL=${LM_STUDIO_MODEL:-lm-studio}
+      - LM_STUDIO_TIMEOUT_SECONDS=${LM_STUDIO_TIMEOUT_SECONDS:-8}
+      - SEARCH_RETRIEVAL_TIMEOUT_SECONDS=${SEARCH_RETRIEVAL_TIMEOUT_SECONDS:-12}
+      - SEARCH_PIPELINE_TIMEOUT_SECONDS=${SEARCH_PIPELINE_TIMEOUT_SECONDS:-70}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ../study-partner-ai:/app
+    working_dir: /app
+    command: >
+      bash -c "uvicorn services.api.main:app --host 0.0.0.0 --port 8000 --reload"
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Frontend - Vite build served by nginx
+  frontend:
+    build:
+      context: ../study-partner-web
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:80/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
