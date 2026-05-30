@@ -2,7 +2,7 @@
 
 ## Overview
 
-Study Partner is an intelligent platform designed to provide personalized study guidance through a multi-agent AI system. This project was developed as part of the **PIDEV – 3rd Year Engineering Program** at **Esprit School of Engineering** (Academic Year 2025–2026).
+Study Partner is an intelligent platform designed to provide personalized study guidance through a multi-agent AI system. This project was developed as part of the **PI-IOT – 4th Year Engineering Program** at **Esprit School of Engineering** (Academic Year 2025–2026).
 
 The platform combines a full-stack web application with advanced AI agents to help students create personalized study plans, receive real-time coaching, and optimize their learning efficiency through intelligent signal processing and progress tracking.
 
